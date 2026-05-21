@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хаффман — Сжатие текстовых файлов</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: #2d3748;
+            color: white;
+            padding: 20px 30px;
+            border-bottom: 4px solid #48bb78;
+        }
+        .header h1 {
+            margin: 0 0 5px 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            resize: vertical;
+            min-height: 120px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        .file-area {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+        .file-area input {
+            display: none;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .btn-green {
+            background: #48bb78;
+        }
+        .btn-green:hover {
+            background: #38a169;
+        }
+        .btn-orange {
+            background: #ed8936;
+        }
+        .btn-orange:hover {
+            background: #dd6b20;
+        }
+        .output-area {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .output-area h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        .code-block {
+            background: #2d3748;
+            color: #68d391;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+        .stat {
+            flex: 1;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #4a5568;
+            margin-top: 5px;
+        }
+        .size-detail {
+            background: #edf2f7;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .size-detail-item {
+            text-align: center;
+            flex: 1;
+        }
+        .size-detail-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .size-detail-label {
+            font-size: 10px;
+            color: #718096;
+        }
+        .alert-info {
+            background: #bee3f8;
+            border-left: 4px solid #3182ce;
+            color: #2c5282;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 2px solid #e2e8f0;
+        }
+        .file-name {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #718096;
+        }
+        @media (max-width: 768px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌳 Алгоритм Хаффмана</h1>
+        <p>Сжатие и распаковка текстовых файлов (.txt)</p>
+    </div>
+    <div class="content">
+        <div class="alert-info">
+            💡 <strong>Как работает:</strong> Частые символы → короткие битовые коды. Дерево строится от листьев к корню.
+        </div>
+
+        <!-- Область загрузки файла -->
+        <div class="section">
+            <label>📁 1. Выберите текстовый файл</label>
+            <div class="file-area" id="fileDropZone">
+                <input type="file" id="fileInput" accept=".txt">
+                <div>📂 Нажмите или перетащите файл сюда</div>
+                <div style="font-size: 12px; margin-top: 8px; color: #718096;">Поддерживаются файлы .txt</div>
+            </div>
+            <div id="fileName" class="file-name"></div>
+        </div>
+
+        <!-- Просмотр содержимого -->
+        <div class="section">
+            <label>📄 2. Содержимое файла</label>
+            <textarea id="inputText" placeholder="После загрузки файла здесь появится текст..." readonly></textarea>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="button-group">
+            <button id="compressBtn">🔒 Сжать файл</button>
+            <button id="decompressBtn" class="btn-green">🔓 Распаковать</button>
+            <button id="saveCompressedBtn" class="btn-orange">💾 Сохранить сжатый файл</button>
+            <button id="saveDecompressedBtn" class="btn-orange">💾 Сохранить распакованный</button>
+        </div>
+
+        <!-- Результат сжатия -->
+        <div class="row">
+            <div class="section">
+                <label>📤 Результат сжатия (битовая строка)</label>
+                <div id="codesOutput" class="output-area">
+                    <h3>Битовая строка:</h3>
+                    <div style="color: #718096;">Загрузите файл и нажмите "Сжать"</div>
+                </div>
+            </div>
+            <div class="section">
+                <label>🔤 Таблица кодов Хаффмана</label>
+                <div id="codeTableOutput" class="output-area">
+                    <h3>Символ → Код</h3>
+                    <div style="color: #718096;">Загрузите файл и нажмите "Сжать"</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Распакованный текст -->
+        <div class="section">
+            <label>📥 Распакованный текст</label>
+            <div id="decompressedOutput" class="output-area">
+                <h3>Восстановленный текст</h3>
+                <div style="color: #718096;">Нажмите "Распаковать"</div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="originalSize">0</div>
+                <div class="stat-label">Исходный размер (байт)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="compressedSize">0</div>
+                <div class="stat-label">Сжатый размер (байт)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ratio">0</div>
+                <div class="stat-label">Экономия (%)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="uniqueChars">0</div>
+                <div class="stat-label">Уникальных символов</div>
+            </div>
+        </div>
+
+        <!-- Детали сжатия: убрана строка "Накладные расходы" и вся информация о дереве и битовой части -->
+        <!-- Блок sizeDetails полностью удалён из интерфейса, чтобы не показывать overhead -->
+    </div>
+</div>
+
+<script>
+    // ======================== АЛГОРИТМ ХАФФМАНА (ПОЛНАЯ РЕАЛИЗАЦИЯ) ========================
+    const Huffman = (function() {
+        class Node {
+            constructor(char, freq, left = null, right = null) {
+                this.char = char;
+                this.freq = freq;
+                this.left = left;
+                this.right = right;
+            }
+        }
+
+        function buildFrequencyMap(text) {
+            const freqMap = new Map();
+            for (let ch of text) {
+                freqMap.set(ch, (freqMap.get(ch) || 0) + 1);
+            }
+            return freqMap;
+        }
+
+        function buildTree(freqMap) {
+            const nodes = [];
+            for (let [char, freq] of freqMap.entries()) {
+                nodes.push(new Node(char, freq));
+            }
+            while (nodes.length > 1) {
+                nodes.sort((a, b) => a.freq - b.freq);
+                const left = nodes.shift();
+                const right = nodes.shift();
+                const merged = new Node(null, left.freq + right.freq, left, right);
+                nodes.push(merged);
+            }
+            return nodes[0];
+        }
+
+        function buildCodes(node, prefix = "", codesMap = new Map()) {
+            if (!node) return;
+            if (node.char !== null) {
+                codesMap.set(node.char, prefix || "0");
+                return;
+            }
+            buildCodes(node.left, prefix + "0", codesMap);
+            buildCodes(node.right, prefix + "1", codesMap);
+        }
+
+        function encodeText(text, codesMap) {
+            let bits = "";
+            for (let ch of text) {
+                bits += codesMap.get(ch);
+            }
+            return bits;
+        }
+
+function decodeBits(bits, root) {
+
+    if (!bits || !root) {
+        return "";
+    }
+
+    // СПЕЦИАЛЬНЫЙ СЛУЧАЙ:
+    // только один уникальный символ
+    if (root.left === null && root.right === null) {
+        return root.char.repeat(bits.length);
+    }
+
+    let decoded = "";
+    let currentNode = root;
+
+    for (let bit of bits) {
+
+        if (bit === '0') {
+            currentNode = currentNode.left;
+        } else {
+            currentNode = currentNode.right;
+        }
+
+        // защита от битых данных
+        if (!currentNode) {
+            throw new Error("Повреждено дерево Хаффмана или битовая строка");
+        }
+
+        if (currentNode.char !== null) {
+            decoded += currentNode.char;
+            currentNode = root;
+        }
+    }
+
+    return decoded;
+}
+
+        function serializeTree(node) {
+            if (!node) return '';
+            if (node.char !== null) {
+                return `1${escapeChar(node.char)}`;
+            }
+            return `0${serializeTree(node.left)}${serializeTree(node.right)}`;
+        }
+
+        function escapeChar(ch) {
+            if (ch === '\\') return '\\\\';
+            if (ch === '\n') return '\\n';
+            if (ch === '\r') return '\\r';
+            if (ch === '\t') return '\\t';
+            return ch;
+        }
+
+        function unescapeChar(str, startIdx) {
+            let ch = str[startIdx];
+            if (ch === '\\') {
+                const next = str[startIdx + 1];
+                if (next === 'n') return { char: '\n', nextIndex: startIdx + 2 };
+                if (next === 'r') return { char: '\r', nextIndex: startIdx + 2 };
+                if (next === 't') return { char: '\t', nextIndex: startIdx + 2 };
+                if (next === '\\') return { char: '\\', nextIndex: startIdx + 2 };
+            }
+            return { char: ch, nextIndex: startIdx + 1 };
+        }
+
+        function deserializeTree(data, idx = 0) {
+            if (idx >= data.length) return null;
+            const type = data[idx];
+            if (type === '1') {
+                const { char, nextIndex } = unescapeChar(data, idx + 1);
+                return { node: new Node(char, 0), nextIndex: nextIndex };
+            } else if (type === '0') {
+                const leftRes = deserializeTree(data, idx + 1);
+                const rightRes = deserializeTree(data, leftRes.nextIndex);
+                const node = new Node(null, 0, leftRes.node, rightRes.node);
+                return { node: node, nextIndex: rightRes.nextIndex };
+            }
+            return null;
+        }
+
+        function formatCodeTable(codesMap) {
+            let result = '';
+            const sorted = Array.from(codesMap.entries()).sort((a,b) => a[0].localeCompare(b[0]));
+            for (let [ch, code] of sorted) {
+                let displayChar = ch;
+                if (ch === '\n') displayChar = '\\n';
+                if (ch === '\r') displayChar = '\\r';
+                if (ch === '\t') displayChar = '\\t';
+                if (ch === ' ') displayChar = '[пробел]';
+                result += `${displayChar} : ${code}<br>`;
+            }
+            return result || '(нет данных)';
+        }
+
+        return {
+            encode: function(text) {
+                if (!text) throw new Error("Нет текста для сжатия");
+                const freqMap = buildFrequencyMap(text);
+                const tree = buildTree(freqMap);
+                const codesMap = new Map();
+                buildCodes(tree, "", codesMap);
+                const encodedBits = encodeText(text, codesMap);
+                const treeStructure = serializeTree(tree);
+
+                const originalBytes = new TextEncoder().encode(text).length;
+                const bitsBytes = Math.ceil(encodedBits.length / 8);
+                const treeBytes = new TextEncoder().encode(treeStructure).length;
+                const compressedBytes = bitsBytes + treeBytes + 4; // +4 для хранения длины (как в сохранении)
+                const savingsPercent = originalBytes > 0 ? ((1 - compressedBytes / originalBytes) * 100).toFixed(1) : 0;
+
+                return {
+                    encodedBits: encodedBits,
+                    root: tree,
+                    codes: codesMap,
+                    treeStructure: treeStructure,
+                    stats: {
+                        originalBytes: originalBytes,
+                        compressedBytes: compressedBytes,
+                        savingsPercent: parseFloat(savingsPercent),
+                        bitsBytes: bitsBytes,
+                        treeBytes: treeBytes
+                    }
+                };
+            },
+            decode: function(bits, root) {
+                if (!bits || !root) throw new Error("Недостаточно данных для распаковки");
+                return decodeBits(bits, root);
+            },
+            formatCodeTable: formatCodeTable,
+            deserializeTree: function(treeStr) {
+                const res = deserializeTree(treeStr, 0);
+                return res ? res.node : null;
+            }
+        };
+    })();
+
+    // ======================== UI ЛОГИКА (без отображения накладных расходов) ========================
+    const fileInput = document.getElementById('fileInput');
+    const fileDropZone = document.getElementById('fileDropZone');
+    const fileNameDiv = document.getElementById('fileName');
+    const inputText = document.getElementById('inputText');
+    const codesOutput = document.getElementById('codesOutput');
+    const codeTableOutput = document.getElementById('codeTableOutput');
+    const decompressedOutput = document.getElementById('decompressedOutput');
+    const originalSizeSpan = document.getElementById('originalSize');
+    const compressedSizeSpan = document.getElementById('compressedSize');
+    const ratioSpan = document.getElementById('ratio');
+    const uniqueCharsSpan = document.getElementById('uniqueChars');
+
+    // Удаляем переменные и элементы, связанные с overhead / sizeDetails
+    // Убедились, что HTML блок sizeDetails полностью убран.
+
+    let lastEncodedData = null;
+    let currentDecodedText = null;
+    let currentFileName = '';
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\n]/g, '<br>');
+    }
+
+    function formatBitsWithSpacing(bits) {
+        if (!bits) return '';
+        let result = '';
+        for (let i = 0; i < bits.length; i++) {
+            result += bits[i];
+            if ((i + 1) % 8 === 0 && i !== bits.length - 1) result += ' ';
+        }
+        return result;
+    }
+
+    function loadFile(file) {
+        if (!file) return;
+
+        if (!file.name.endsWith('.txt')) {
+            alert("Пожалуйста, выберите текстовый файл (.txt)");
+            return;
+        }
+
+        currentFileName = file.name;
+        fileNameDiv.innerHTML = `📄 Выбран файл: ${file.name} (${(file.size / 1024).toFixed(2)} КБ)`;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            inputText.value = e.target.result;
+            // Сбрасываем результаты
+            lastEncodedData = null;
+            currentDecodedText = null;
+            codesOutput.innerHTML = '<h3>Битовая строка:</h3><div style="color: #718096;">Нажмите "Сжать"</div>';
+            codeTableOutput.innerHTML = '<h3>Символ → Код</h3><div style="color: #718096;">Нажмите "Сжать"</div>';
+            decompressedOutput.innerHTML = '<h3>Восстановленный текст</h3><div style="color: #718096;">Нажмите "Распаковать"</div>';
+            originalSizeSpan.textContent = "0";
+            compressedSizeSpan.textContent = "0";
+            ratioSpan.textContent = "0";
+            uniqueCharsSpan.textContent = "0";
+        };
+        reader.onerror = function() {
+            alert("Ошибка при чтении файла");
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    fileDropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            loadFile(e.target.files[0]);
+        }
+    });
+
+    fileDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileDropZone.style.borderColor = '#667eea';
+        fileDropZone.style.background = '#edf2f7';
+    });
+
+    fileDropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        fileDropZone.style.borderColor = '#cbd5e0';
+        fileDropZone.style.background = '#f7fafc';
+    });
+
+    fileDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileDropZone.style.borderColor = '#cbd5e0';
+        fileDropZone.style.background = '#f7fafc';
+        if (e.dataTransfer.files.length > 0) {
+            loadFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    function saveToFile(content, filename) {
+        let blob;
+        if (content instanceof Uint8Array) {
+            blob = new Blob([content], {type: 'application/octet-stream'});
+        } else {
+            blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+        }
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    function compress() {
+        let text = inputText.value;
+        if (!text) {
+            alert("Сначала загрузите текстовый файл");
+            return;
+        }
+
+        try {
+            let result = Huffman.encode(text);
+            lastEncodedData = result;
+            currentDecodedText = text;
+
+            let fullBits = result.encodedBits || '';
+            let formattedBits = formatBitsWithSpacing(fullBits);
+            let bitsDisplay = formattedBits || '(пусто)';
+            // ограничиваем отображение для производительности
+            if (bitsDisplay.length > 2000) {
+                bitsDisplay = bitsDisplay.substring(0, 2000) + '… (обрезано)';
+            }
+
+            codesOutput.innerHTML = `<h3>Битовая строка (${result.encodedBits.length} бит):</h3>
+                                      <div class="code-block" style="max-height:150px; overflow:auto;">${escapeHtml(bitsDisplay)}</div>`;
+
+            codeTableOutput.innerHTML = `<h3>Символ → Код (${result.codes.size} уникальных)</h3>
+                                          <div style="font-size: 12px; max-height:150px; overflow-y:auto;">${Huffman.formatCodeTable(result.codes)}</div>`;
+
+            originalSizeSpan.textContent = result.stats.originalBytes;
+            compressedSizeSpan.textContent = result.stats.compressedBytes;
+            ratioSpan.textContent = result.stats.savingsPercent + '%';
+            uniqueCharsSpan.textContent = result.codes.size;
+
+            if (result.stats.savingsPercent > 0) {
+                ratioSpan.style.color = '#38a169';
+            } else {
+                ratioSpan.style.color = '#ed8936';
+            }
+
+            decompressedOutput.innerHTML = '<h3>Восстановленный текст</h3><div style="color: #718096;">Нажмите "Распаковать"</div>';
+        } catch (e) {
+            console.error(e);
+            alert("Ошибка при сжатии: " + e.message);
+        }
+    }
+
+    function decompress() {
+        if (!lastEncodedData || !lastEncodedData.encodedBits || !lastEncodedData.root) {
+            alert("Сначала выполните сжатие (нажмите 'Сжать файл')");
+            return;
+        }
+
+        try {
+            let decompressed = Huffman.decode(lastEncodedData.encodedBits, lastEncodedData.root);
+            currentDecodedText = decompressed;
+
+            let match = (decompressed === inputText.value);
+            let matchHtml = match ?
+                '<div style="margin-top:8px; color:#38a169; font-weight:bold;">✓ Совпадает с оригиналом!</div>' :
+                '<div style="margin-top:8px; color:#ed8936; font-weight:bold;">⚠️ Ошибка: текст не совпадает</div>';
+
+            let previewText = decompressed;
+            if (previewText.length > 500) {
+                previewText = previewText.substring(0, 500) + '… (показано начало)';
+            }
+            decompressedOutput.innerHTML = `<h3>Восстановленный текст (${decompressed.length} символов)</h3>
+                                             <div style="background: #f7fafc; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">${escapeHtml(previewText)}</div>
+                                             ${matchHtml}`;
+        } catch (e) {
+            alert("Ошибка распаковки: " + e.message);
+        }
+    }
+
+    function saveCompressed() {
+        if (!lastEncodedData || !lastEncodedData.encodedBits) {
+            alert("Сначала выполните сжатие");
+            return;
+        }
+
+        const bits = lastEncodedData.encodedBits;
+        const tree = lastEncodedData.treeStructure;
+
+        const byteArray = [];
+        for (let i = 0; i < bits.length; i += 8) {
+            const byteStr = bits.substr(i, 8).padEnd(8, '0');
+            byteArray.push(parseInt(byteStr, 2));
+        }
+
+        const bitsBuffer = new Uint8Array(byteArray);
+        const treeBuffer = new TextEncoder().encode(tree);
+
+        const totalSize = 4 + bitsBuffer.length + treeBuffer.length;
+        const result = new Uint8Array(totalSize);
+
+        result[0] = bitsBuffer.length & 0xFF;
+        result[1] = (bitsBuffer.length >> 8) & 0xFF;
+        result[2] = (bitsBuffer.length >> 16) & 0xFF;
+        result[3] = (bitsBuffer.length >> 24) & 0xFF;
+
+        result.set(bitsBuffer, 4);
+        result.set(treeBuffer, 4 + bitsBuffer.length);
+
+        const baseName = currentFileName.replace('.txt', '') || 'file';
+        saveToFile(result, `${baseName}_compressed.bin`);
+        alert(`Сжатый файл сохранён как "${baseName}_compressed.bin" (бинарный формат)`);
+    }
+
+    function saveDecompressed() {
+        if (!currentDecodedText) {
+            if (lastEncodedData) {
+                decompress();
+                if (!currentDecodedText) {
+                    alert("Не удалось получить распакованный текст");
+                    return;
+                }
+            } else {
+                alert("Сначала выполните сжатие и распаковку");
+                return;
+            }
+        }
+
+        const baseName = currentFileName.replace('.txt', '') || 'file';
+        saveToFile(currentDecodedText, `${baseName}_decompressed.txt`);
+        alert(`Распакованный файл сохранён как "${baseName}_decompressed.txt"`);
+    }
+
+    document.getElementById('compressBtn').addEventListener('click', compress);
+    document.getElementById('decompressBtn').addEventListener('click', decompress);
+    document.getElementById('saveCompressedBtn').addEventListener('click', saveCompressed);
+    document.getElementById('saveDecompressedBtn').addEventListener('click', saveDecompressed);
+</script>
+</body>
+</html>
