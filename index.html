@@ -308,14 +308,11 @@
                 <div class="stat-label">Уникальных символов</div>
             </div>
         </div>
-
-        <!-- Детали сжатия: убрана строка "Накладные расходы" и вся информация о дереве и битовой части -->
-        <!-- Блок sizeDetails полностью удалён из интерфейса, чтобы не показывать overhead -->
     </div>
 </div>
 
 <script>
-    // ======================== АЛГОРИТМ ХАФФМАНА (ПОЛНАЯ РЕАЛИЗАЦИЯ) ========================
+    // АЛГОРИТМ ХАФФМАНА
     const Huffman = (function() {
         class Node {
             constructor(char, freq, left = null, right = null) {
@@ -503,7 +500,7 @@ function decodeBits(bits, root) {
         };
     })();
 
-    // ======================== UI ЛОГИКА (без отображения накладных расходов) ========================
+    // UI ЛОГИКА 
     const fileInput = document.getElementById('fileInput');
     const fileDropZone = document.getElementById('fileDropZone');
     const fileNameDiv = document.getElementById('fileName');
